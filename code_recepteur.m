@@ -7,50 +7,57 @@ level = 1;
 %% Chargement du fichier contenant le signal reçu
 
 load 'signal_recu.mat';
-if level > 1
-  signal_recu = signal_recu(1:5:end);
-end
+signal_recu = signal_recu(20000:200000) -  mean(signal_recu(20000:200000));
+
+% if level > 1
+%   signal_recu = signal_recu(1:5:end);
+% end
 
 % Paramètres pour Welch
-Nfft = 1024; % Taille de la FFT
-window = hamming(256); % Fenêtre de Hamming
-noverlap = length(window) / 2; % Chevauchement à 50%
+Nfft = 512; 
+window = hamming(1024);
+noverlap = length(window) / 10;
 
-% Calcul du periodogramme de Welch
-[Px, F] = pwelch(signal_recu, window, noverlap, Nfft, 1/Te); % Te est le temps d'échantillonnage
+% Periodogramme de Welch du signal_recu
+[Px, F] = pwelch(signal_recu, window, noverlap, Nfft, 1);
+
+Px_db = 10*log10(fftshift(Px));
+
+% sigma = 2; % Écart-type du filtre gaussien
+% windowSize = 10000;
+% gaussFilter = fspecial('gaussian', [1, windowSize], sigma);
+% Px_db_2 = conv(Px_db, gaussFilter, 'same');
 
 % Affichage du periodogramme
 figure;
-plot(F, 10*log10(Px)); % Échelle logarithmique
+hold on
+plot(F, Px_db_2);
+plot(F, Px_db);
 xlabel('Fréquence (Hz)');
 ylabel('Densité spectrale de puissance (dB/Hz)');
 title('Periodogramme de Welch du signal reçu');
 grid on;
+hold off
 
-%% Votre récepteur 
-% En entrée : signal_recu, signal équivalent à rl(kTe) avec Te le temps
-% d'échantillonnage
+% Estimation du Temps Symbole
+Ts = 10^(-11/10);
 
-% hatB doit être une matrice de log2(M) lignes et Ns
-% générer la matrice hat(B)
-% Définir M (ordre de modulation)
-M = 4; % Exemple pour QPSK
-log2M = log2(M); % Nombre de bits par symbole
+% Estimation du rolloff
 
-% Définir Ns (nombre de symboles)
-Ns = floor(length(signal_recu) / log2M); % Prend la partie entière
+% Détection de la bande à -40 dB
+threshold = - 40; % Seuil à -40 dB
+indices = find(Px_db >= threshold); % Indices des fréquences au-dessus du seuil
 
-% Générer une séquence binaire aléatoire pour hatB (exemple)
-hatB = randi([0 1], log2M, Ns);
+f_min = F(indices(1));
+f_max = F(indices(end));
+B_db = f_max - f_min
 
-% calculé grace à la fonction de2bi(foo,2) foo étant ici une représentation entière des étiquettes
-%% Décodage de source
-hatMatBitImg = reshape(hatB(:),[],8);
-matImg = bi2de(hatMatBitImg);
-T = 1 % Changer ici la taille de l'image
-Img = reshape(matImg,T,T);
 
-%% Affichage
-figure
-imagesc(Img)
-colormap gray
+rolloff =  B_db*Ts-1;
+
+h = rcosdesign(rolloff, Nfft, 1);
+H = fftshift(fft(h, Nfft));
+plot(H);
+
+
+
