@@ -103,6 +103,9 @@ plot(H);
 
 % hatB doit être une matrice de log2(M) lignes et Ns
 % calculé grace à la fonction de2bi(foo,2) foo étant ici une représentation entière des étiquettes
+Ns = length(bits_recus)/2;
+hatB = reshape(bits_recus, 2, Ns);  
+
 %% Décodage de source
 hatMatBitImg = reshape(hatB(:),[],8);
 matImg = bi2de(hatMatBitImg);
