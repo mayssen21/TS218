@@ -52,6 +52,16 @@ Px_db = 10*log10(fftshift(Px));
 % gaussFilter = fspecial('gaussian', [1, windowSize], sigma);
 % Px_db_2 = conv(Px_db, gaussFilter, 'same');
 
+% Décision 
+constellation = [exp(1i*pi/4) exp(3*1i*pi/4) exp(5*1i*pi/4) exp(7*1i*pi/4)];
+bits_toestimate = [0 0; 0 1; 1 1; 1 0];
+bits_recus = [];
+for k = 1:N_symb
+    [~, idx] = min(abs(symbols(k) - constellation));
+    bits_recus = [bits_recus bits_toestimate(idx,:)];
+end
+
+
 % Affichage du periodogramme
 figure;
 hold on
