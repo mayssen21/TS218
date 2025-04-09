@@ -13,7 +13,7 @@ load 'signal_recu.mat'; %655407
 
 %signal_recu = signal_recu(20000:200000) -  mean(signal_recu(20000:200000));
 
-signal_recu = signal_recu(41:655407);
+signal_recu = signal_recu(40:655408);
 
 % if level > 1
 %   signal_recu = signal_recu(1:5:end);
@@ -59,7 +59,7 @@ rolloff =  B_w*Fse-1
 
 Fse = 10;
 %round(5/0.35)
-h = rcosdesign(0.35, 128, Fse);
+h = rcosdesign(0.5, 128, Fse);
 
 H = 10*log10(fftshift(fft(h, Nfft)))-15;
 
@@ -68,21 +68,20 @@ H = 10*log10(fftshift(fft(h, Nfft)))-15;
 % Filtrage adapté
 s_l = conv(signal_recu, conj(flip(h)));
 
-symbols = downsample(s_l, Fse, 8); 
-
+symbols = downsample(s_l, Fse, 9); 
 % Programmation de la boucle à verrouillage de phase (Youpi)
 symbolsp4 = symbols.^4;
 N_symb = length(symbols);
 phi_k = 2; 
 delta_k = 2;
-alpha = 1;
-beta = 1;
+alpha = 0.5;
+beta = 0.05;
 phi = zeros(1, N_symb);
 delta = zeros(1, N_symb);
 
 for k = 2:N_symb
-    delta(k) = delta(k-1) + beta * imag(symbolsp4(k) * exp(-1j * phi(k-1)));
-    phi(k) = phi(k-1) + delta(k) +alpha * imag(symbolsp4(k) * exp(-1j * phi(k-1)));
+    delta(k) = delta(k-1) + beta * imag(symbolsp4(k) .* exp(-1i * phi(k-1)));
+    phi(k) = phi(k-1) + delta(k) +alpha * imag(symbolsp4(k) .* exp(-1i * phi(k-1)));
 end
 M=4;
 symbols = symbols .* exp(-1j * (phi.'/M + 3*pi/4));
@@ -91,7 +90,7 @@ symbols = symbols .* exp(-1j * (phi.'/M + 3*pi/4));
 
 % Décision 
 constellation = [exp(1i*pi/4) exp(3*1i*pi/4) exp(5*1i*pi/4) exp(7*1i*pi/4)];
-bits_toestimate = [0 0; 0 1; 1 1; 1 0];
+bits_toestimate = [0 0; 1 0; 1 1; 0 1];
 bits_recus = [];
 iddx = [];
 
@@ -126,13 +125,10 @@ matImg = bi2de(hatMatBitImg);
 T = 128; 
 Img = reshape(matImg,T,T);
 
-%% Affichage
-figure;
-imagesc(Img);
-colormap gray;
-title('Image reconstruite');
 
 %% Affichage
 figure
 imagesc(Img)
 colormap gray
+
+scatterplot(symbols)
